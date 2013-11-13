@@ -16,6 +16,7 @@ class Node:
 		self.right = None
 		self.left = None
 		self.state = None
+		self.messageQueue = []
 
 	def onReceive(self, message):
 		pass
@@ -25,6 +26,7 @@ class Node:
 
 class Message:
 	def __init__(self):
+		self.delay = 0
 		self.distance = 0
 		self.payload = None
 		self.stage = 0
