@@ -2,6 +2,7 @@ __author__ = 'ashwin'
 
 from Network import *
 from Node import *
+from Message import *
 from random import randint
 
 class AsFarMessage(Message):
@@ -29,27 +30,33 @@ class AsFarNode(Node):
 		delattr(self, 'left')
 
 	def processMessage(self:Node, message:AsFarMessage):
-		#print("Node %d is processing message %d" %(self.id, message.id))  ##
+		print("Node %d (state %d) is processing message %d (type %d)" %(self.id, self.state, message.id, message.type))  ##
 		if message.id == self.id:  # algorithm terminates
-			if message.type != message.LEADER:
-				self.state = AsFarNode.LEADER
-				self.messageQueue = []
+			if self.state != self.LEADER:
+				if message.type != message.LEADER:
+					self.state = self.LEADER
+					self.messageQueue = []
 
-				m = AsFarMessage()
-				m.type = AsFarMessage.LEADER
-				m.id = self.id
-				m.delay = randint(AsFarNode.minDelay, AsFarNode.maxDelay)
-				self.right.messageQueue.append(m)
-				self.sentMessages += 1
+					m = AsFarMessage()
+					m.type = m.LEADER
+					m.id = self.id
+					m.delay = randint(AsFarNode.minDelay, AsFarNode.maxDelay)
+					print("Node %d (state %d) transmits message %d (type %d) to Node %d" % (self.id, self.state, m.id, m.type, self.right.id))  ##
+					self.right.messageQueue.append(m)
+					self.sentMessages += 1
+				else:
+					self.messageQueue = []
 
-		elif message.type == AsFarMessage.LEADER:
+		elif message.type == message.LEADER:
 			self.messageQueue = []
-			self.state = AsFarNode.FOLLOWER
+			self.state = self.FOLLOWER
+			print("Node %d (state %d) transmits message %d (type %d) to Node %d" % (self.id, self.state, message.id, message.type, self.right.id))  ##
 			self.right.messageQueue.append(message)
 			self.sentMessages += 1
 
 		elif message.id < self.id:
 			message.delay = randint(AsFarNode.minDelay, AsFarNode.maxDelay)
+			print("Node %d (state %d) transmits message %d (type %d) to Node %d" % (self.id, self.state, message.id, message.type, self.right.id))  ##
 			self.right.messageQueue.append(message)
 			self.sentMessages += 1
 
@@ -58,8 +65,8 @@ class AsFarNode(Node):
 			return
 		else:
 			for m in self.messageQueue:
-				#print("Node %d saw message %d (delay %d)" %(self.id, m.id, m.delay))  ##
 				m.delay -= 1
+				print("Node %d (state %d) saw message %d (type %d) (delay %d)" %(self.id, self.state, m.id, m.type, m.delay))  ##
 
 			m = self.messageQueue[0]
 			if m.delay <= 0:
@@ -67,17 +74,20 @@ class AsFarNode(Node):
 				self.processMessage(m)
 
 	def begin(self):
+		self.state = self.INITIATOR
 		m = Message()
 		m.id = self.id
 		m.type = AsFarMessage.INFO
 		m.delay = randint(AsFarNode.minDelay, AsFarNode.maxDelay)
+		print("Node %d (state %d) transmits message %d (type %d) to Node %d" % (self.id, self.state, m.id, m.type, self.right.id))  ##
 		self.right.messageQueue.append(m)
+		self.sentMessages += 1
 
 if __name__ == "__main__":
 	print("starting")
 
 	N = AsFarNetwork
-	networkSize = 50
+	networkSize = 10
 	net = AsFarNetwork(networkSize)
 	net.setIds()
 	net.showTopology()
