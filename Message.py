@@ -7,3 +7,6 @@ class Message:
 	def __init__(self):
 		self.delay = 0
 		self.type = None
+
+	def log(self):
+		pass

@@ -43,3 +43,6 @@ class Node:
 
 	def begin(self):
 		pass
+
+	def log(self):
+		pass

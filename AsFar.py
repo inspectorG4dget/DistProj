@@ -5,10 +5,22 @@ from Node import *
 from Message import *
 from random import randint
 
+import logging
+log = logging.getLogger('As Far')
+log.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(name)s - %(levelname)-8s - %(message)s')
+ch.setFormatter(formatter)
+log.addHandler(ch)
+
 class AsFarMessage(Message):
 	def __init__(self):
 		self.id = None
 		self.type = super().INFO
+
+	def log(self):
+		return "(ID%d, T%d, D%d)" %(self.id, self.type, self.delay)
 
 
 class AsFarNetwork(Network):
@@ -29,8 +41,11 @@ class AsFarNode(Node):
 		super().__init__()
 		delattr(self, 'left')
 
+	def log(self):
+		return "(ID%d, S%d, Q%d)" %(self.id, self.state, len(self.messageQueue))
+
 	def processMessage(self:Node, message:AsFarMessage):
-		print("Node %d (state %d) is processing message %d (type %d)" %(self.id, self.state, message.id, message.type))  ##
+		log.debug("Node %s is processing message %s" %(self.log(), message.log()))  ##
 		if message.id == self.id:  # algorithm terminates
 			if self.state != self.LEADER:
 				if message.type != message.LEADER:
@@ -41,7 +56,7 @@ class AsFarNode(Node):
 					m.type = m.LEADER
 					m.id = self.id
 					m.delay = randint(AsFarNode.minDelay, AsFarNode.maxDelay)
-					print("Node %d (state %d) transmits message %d (type %d) to Node %d" % (self.id, self.state, m.id, m.type, self.right.id))  ##
+					log.info("Node %s transmits message %s to Node %d" % (self.log(), m.log(), self.right.id))  ##
 					self.right.messageQueue.append(m)
 					self.sentMessages += 1
 				else:
@@ -50,13 +65,13 @@ class AsFarNode(Node):
 		elif message.type == message.LEADER:
 			self.messageQueue = []
 			self.state = self.FOLLOWER
-			print("Node %d (state %d) transmits message %d (type %d) to Node %d" % (self.id, self.state, message.id, message.type, self.right.id))  ##
+			log.info("Node %s transmits message %s to Node %d" % (self.log(), message.log(), self.right.id))  ##
 			self.right.messageQueue.append(message)
 			self.sentMessages += 1
 
 		elif message.id < self.id:
 			message.delay = randint(AsFarNode.minDelay, AsFarNode.maxDelay)
-			print("Node %d (state %d) transmits message %d (type %d) to Node %d" % (self.id, self.state, message.id, message.type, self.right.id))  ##
+			log.info("Node %s transmits message %s to Node %d" % (self.log(), message.log(), self.right.id))  ##
 			self.right.messageQueue.append(message)
 			self.sentMessages += 1
 
@@ -66,7 +81,7 @@ class AsFarNode(Node):
 		else:
 			for m in self.messageQueue:
 				m.delay -= 1
-				print("Node %d (state %d) saw message %d (type %d) (delay %d)" %(self.id, self.state, m.id, m.type, m.delay))  ##
+				log.debug("Node %s saw message %s" %(self.log(), m.log()))  ##
 
 			m = self.messageQueue[0]
 			if m.delay <= 0:
@@ -75,11 +90,11 @@ class AsFarNode(Node):
 
 	def begin(self):
 		self.state = self.INITIATOR
-		m = Message()
+		m = AsFarMessage()
 		m.id = self.id
 		m.type = AsFarMessage.INFO
 		m.delay = randint(AsFarNode.minDelay, AsFarNode.maxDelay)
-		print("Node %d (state %d) transmits message %d (type %d) to Node %d" % (self.id, self.state, m.id, m.type, self.right.id))  ##
+		log.info("Node %s transmits message %s to Node %d" % (self.log(), m.log(), self.right.id))  ##
 		self.right.messageQueue.append(m)
 		self.sentMessages += 1
 
