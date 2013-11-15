@@ -1,14 +1,9 @@
 __author__ = 'ashwin'
 
+import logging
+log = logging.getLogger('As Far')
 
-def addConstants(names):
-	def adder(cls):
-		for i, name in enumerate(names): setattr(cls, name.upper(), i)
-		return cls
 
-	return adder
-
-#@addConstants("sleeping awake processing leader follower initiator")
 class Node:
 
 	INITIATOR = 0
@@ -46,3 +41,7 @@ class Node:
 
 	def log(self):
 		pass
+
+	def sendMessage(self, message, destination):
+		destination.messageQueue.append(message)
+		self.sentMessages += 1
