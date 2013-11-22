@@ -42,6 +42,12 @@ class Node:
 	def log(self):
 		pass
 
-	def sendMessage(self, message, destination):
+	def _sendMessage(self, message, destination):
 		destination.messageQueue.append(message)
 		self.sentMessages += 1
+
+	def sendLeft(self, message):
+		self._sendMessage(message, self.left)
+
+	def sendRight(self, message):
+		self._sendMessage(message, self.right)

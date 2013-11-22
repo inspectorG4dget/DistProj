@@ -8,7 +8,7 @@ from random import randint
 log.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(name)s - %(levelname)-8s - %(message)s')
+formatter = logging.Formatter('%(name)s | %(levelname)-8s | %(message)s')
 ch.setFormatter(formatter)
 log.addHandler(ch)
 
@@ -44,10 +44,10 @@ class AsFarNode(Node):
 		return "(%d, S%d, Q%d)" %(self.id, self.state, len(self.messageQueue))
 
 	def sendMessage(self, message):
-		super().sendMessage(message, self.right)
+		super()._sendMessage(message, self.right)
 
 	def processMessage(self:Node, message:AsFarMessage):
-		log.debug("Node %s is processing %s" %(self.log(), message.log()))  ##
+		log.debug("Node %17s | PROCESS  | %-17s" %(self.log(), message.log()))  ##
 		if message.id == self.id:  # algorithm terminates
 			if self.state != self.LEADER:
 				if message.type != message.LEADER:
@@ -58,7 +58,7 @@ class AsFarNode(Node):
 					m.type = m.LEADER
 					m.id = self.id
 					m.delay = randint(AsFarNode.minDelay, AsFarNode.maxDelay)
-					log.info("Node %s transmits %s to Node %d" % (self.log(), m.log(), self.right.id))  ##
+					log.info("Node %17s | TRANSMIT | %-17s | to Node %03d" % (self.log(), m.log(), self.right.id))  ##
 					self.sendMessage(m)
 				else:
 					self.messageQueue = []
@@ -66,12 +66,12 @@ class AsFarNode(Node):
 		elif message.type == message.LEADER:
 			self.messageQueue = []
 			self.state = self.FOLLOWER
-			log.info("Node %s transmits %s to Node %d" % (self.log(), message.log(), self.right.id))  ##
+			log.info("Node %17s | TRANSMIT | %-17s | to Node %03d" % (self.log(), message.log(), self.right.id))  ##
 			self.sendMessage(message)
 
 		elif message.id < self.id:
 			message.delay = randint(AsFarNode.minDelay, AsFarNode.maxDelay)
-			log.info("Node %s transmits %s to Node %d" % (self.log(), message.log(), self.right.id))  ##
+			log.info("Node %17s | TRANSMIT | %-17s | to Node %03d" % (self.log(), message.log(), self.right.id))  ##
 			self.sendMessage(message)
 
 	def processMessageQueue(self:Node):
@@ -80,7 +80,7 @@ class AsFarNode(Node):
 		else:
 			for m in self.messageQueue:
 				m.delay -= 1
-				log.debug("Node %s saw message %s" %(self.log(), m.log()))  ##
+				log.debug("Node %17s | SEE      | %-17s" %(self.log(), m.log()))  ##
 
 			m = self.messageQueue[0]
 			if m.delay <= 0:
