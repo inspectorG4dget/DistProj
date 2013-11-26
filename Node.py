@@ -1,8 +1,5 @@
 __author__ = 'ashwin'
 
-import logging
-log = logging.getLogger('As Far')
-
 
 class Node:
 

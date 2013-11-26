@@ -1,7 +1,5 @@
 __author__ = 'ashwin'
 
-from Node import Node
-
 class Message:
 	INFO = 0
 	LEADER = 1

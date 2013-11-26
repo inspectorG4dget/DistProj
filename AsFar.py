@@ -5,6 +5,9 @@ from Node import *
 from Message import *
 from random import randint
 
+import logging
+
+log = logging.getLogger("As Far")
 log.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
@@ -92,7 +95,7 @@ class AsFarNode(Node):
 		m = AsFarMessage()
 		m.id = self.id
 		m.type = AsFarMessage.INFO
-		m.delay = randint(AsFarNode.minDelay, AsFarNode.maxDelay)
+		m.delay = randint(self.minDelay, self.maxDelay)
 		self.sendMessage(m)
 
 if __name__ == "__main__":
