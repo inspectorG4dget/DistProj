@@ -4,14 +4,14 @@ from Node import *
 from Network import *
 from Message import *
 from random import randint
-
+"""
 log.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(name)s | %(levelname)-8s | %(message)s')
 ch.setFormatter(formatter)
 log.addHandler(ch)
-
+"""
 class StageMessage(Message):
     SENTFROMRIGHT = 0
 
@@ -63,8 +63,12 @@ class StageNode(Node):
         self.sendLeft(message)
 
     def processMessage(self:Node, message:StageMessage):
-        log.debug("Node %17s | PROCESS  | %-17s" %(self.log(), message.log()))  ##
+        #log.debug("Node %17s | PROCESS  | %-17s" %(self.log(), message.log()))  ##
 
+        print("Node id "+str(self.id) + " self.messageQueue: ")
+        for p in self.messageQueue:
+            print(p)
+        print("Node id "+str(self.id) + " end of self.messageQueue: ")
         if message.id == self.id:  # algorithm terminates
             if self.state != self.LEADER:
                 if message.type != message.LEADER:
@@ -76,7 +80,8 @@ class StageNode(Node):
                     m.id = self.id
                     m.delay = randint(StageNode.minDelay, StageNode.maxDelay)
                     m.stage = self.stage
-                    log.info("Node %17s | TRANSMIT | %-17s | to Right Node %03d" % (self.log(), m.log(), self.right.id))  ##
+                    #log.info("Node %17s | TRANSMIT | %-17s | to Right Node %03d" % (self.log(), m.log(), self.right.id))  ##
+                    print("Node id "+str(self.id) + " is Leader!")
                     self.sendRight(m) # Leader notification
                 else:
                     self.messageQueue = []
@@ -84,7 +89,7 @@ class StageNode(Node):
         elif message.type == message.LEADER:
             self.messageQueue = []
             self.state = self.FOLLOWER
-            log.info("Node %17s | TRANSMIT | %-17s | to Node %03d" % (self.log(), message.log(), self.right.id))  ##
+            #log.info("Node %17s | TRANSMIT | %-17s | to Node %03d" % (self.log(), message.log(), self.right.id))  ##
             self.sendRight(message) # Leader notification forward
 
         elif self.state == self.DEFEATED:
@@ -96,7 +101,7 @@ class StageNode(Node):
         elif self.messageQueue:
             if self.messageQueue[0].SENTFROMRIGHT + message.SENTFROMRIGHT == 1: # decide whether there are 2 messages from left and right. TODO need check later
                 message.delay = randint(StageNode.minDelay, StageNode.maxDelay)
-                log.info("Node %17s | TRANSMIT | %-17s | to Node %03d" % (self.log(), message.log(), self.right.id))  ##
+                #log.info("Node %17s | TRANSMIT | %-17s | to Node %03d" % (self.log(), message.log(), self.right.id))  ##
                 if self.id < min(message.id, self.messageQueue[0].id):
                     self.stage += 1
                     m = StageMessage()
@@ -107,6 +112,7 @@ class StageNode(Node):
                     self.send2Sides(m) #send in both sides, TODO how to set SENTFROMRIGHT
                 else:
                     self.state = self.DEFEATED
+                    print("Node id "+str(self.id) + " is DEFEATED!")
 
     def processMessageQueue(self:Node):
         if not self.messageQueue:
@@ -114,7 +120,7 @@ class StageNode(Node):
         else:
             for m in self.messageQueue:
                 m.delay -= 1
-                log.debug("Node %17s | SEE      | %-17s" %(self.log(), m.log()))  ##
+                #log.debug("Node %17s | SEE      | %-17s" %(self.log(), m.log()))  ##
 
             m = self.messageQueue[0]
             if m.delay <= 0:
@@ -133,7 +139,7 @@ class StageNode(Node):
 if __name__ == "__main__":
 	print("starting")
 
-	networkSize = 3
+	networkSize = 5
 	net = StageNetwork(networkSize)
 	net.setIds()
 	net.showTopology()
