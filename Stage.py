@@ -106,22 +106,22 @@ class StageNode(Node):
 			else:
 				self.sendRight(message) # forward to right if sent from left
 
-		elif self.messageQueue:
-			if self.messageQueue[
-				0].SENTFROMRIGHT + message.SENTFROMRIGHT == 1: # decide whether there are 2 messages from left and right. TODO need check later
-				message.delay = randint(StageNode.minDelay, StageNode.maxDelay)
+		else:
+			#if self.messageQueue[
+			#	0].SENTFROMRIGHT + message.SENTFROMRIGHT == 1: # decide whether there are 2 messages from left and right. TODO need check later
+			message.delay = randint(StageNode.minDelay, StageNode.maxDelay)
 				#log.info("Node %17s | TRANSMIT | %-17s | to Node %03d" % (self.log(), message.log(), self.right.id))  ##
-				if self.id < min(message.id, self.messageQueue[0].id):
-					self.stage += 1
-					m = StageMessage()
-					m.type = m.CANDIDATE
-					m.id = self.id
-					m.delay = randint(StageNode.minDelay, StageNode.maxDelay)
-					m.stage = self.stage
-					self.send2Sides(m) #send in both sides, TODO how to set SENTFROMRIGHT
-				else:
-					self.state = self.DEFEATED
-					print("Node id " + str(self.id) + " is DEFEATED!")
+			if self.id < message.id:
+				self.stage += 1
+				m = StageMessage()
+				m.type = self.CANDIDATE
+				m.id = self.id
+				m.delay = randint(StageNode.minDelay, StageNode.maxDelay)
+				m.stage = self.stage
+				self.send2Sides(m) #send in both sides, TODO how to set SENTFROMRIGHT
+			else:
+				self.state = self.DEFEATED
+				print("Node id " + str(self.id) + " is DEFEATED!")
 
 	def processMessageQueue(self:Node):
 		if not self.messageQueue:
@@ -149,7 +149,7 @@ class StageNode(Node):
 if __name__ == "__main__":
 	print("starting")
 
-	networkSize = 5
+	networkSize = 3
 	net = StageNetwork(networkSize)
 	net.setIds()
 	net.showTopology()
