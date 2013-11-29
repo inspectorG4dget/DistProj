@@ -40,7 +40,7 @@ class Node:
 
     def _sendMessage(self, message, destination):
         destination.messageQueue.append(message)
-        print(str(self.id) + " is sending to destination Node " + str(destination.id))
+        #print(str(self.id) + " is sending to destination Node " + str(destination.id))
         self.sentMessages += 1
 
     def sendLeft(self, message):
