@@ -12,9 +12,11 @@ from copy import deepcopy as clone
 import logging
 
 log = logging.getLogger("Stages")
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.ERROR)
+#log.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+ch.setLevel(logging.ERROR)
+#ch.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(name)s | %(levelname)-8s | %(message)s')
 ch.setFormatter(formatter)
 log.addHandler(ch)
@@ -112,7 +114,8 @@ class StageNode(Node):
         #print("-" * 30)
 
         if self.state != StageNode.LEADER and message.type == message.LEADER: #if Non-Leader received LEADER's msg
-            print("Node id " + str(self.id) + " is processing Leader's notice! ")
+            #print("Node id " + str(self.id) + " is processing Leader's notice! ")
+            log.debug("Node id " + str(self.id) + " is processing Leader's notice! ")
             self.messageQueue = []
             self.messageQueueLeft = []
             self.state = self.FOLLOWER
@@ -133,7 +136,8 @@ class StageNode(Node):
                         m.delay = randint(StageNode.minDelay, StageNode.maxDelay)
                         m.stage = self.stage
                         #log.info("Node %17s | TRANSMIT | %-17s | to Right Node %03d" % (self.log(), m.log(), self.right.id))  ##
-                        print("Node id " + str(self.id) + " is Leader!")
+                        #print("Node id " + str(self.id) + " is Leader!")
+                        log.debug("Node id " + str(self.id) + " is Leader!")
                         self.sendRight(m) # Leader notification
 
                     else: # clean msg queue for leader notification back to leader node
@@ -151,7 +155,8 @@ class StageNode(Node):
                 m.delay = randint(StageNode.minDelay, StageNode.maxDelay)
                 m.stage = self.stage
                 #log.info("Node %17s | TRANSMIT | %-17s | to Right Node %03d" % (self.log(), m.log(), self.right.id))  ##
-                print("Node id " + str(self.id) + " is Leader from left!")
+                #print("Node id " + str(self.id) + " is Leader from left!")
+                log.debug("Node id " + str(self.id) + " is Leader from left!")
                 self.sendRight(m) # Leader notification
 
             if self.id != message.id and self.id < message.id: # become waiting to process another side, don't need send msg now, set processedMsg ...
@@ -182,7 +187,8 @@ class StageNode(Node):
                     #    message.id) + " and became Waiting! ")
 
         elif self.state == StageNode.DEFEATED: # DEFEATED node only forward.
-            print("Defeated Node id " + str(self.id) + " is forwarding! ")
+            #print("Defeated Node id " + str(self.id) + " is forwarding! ")
+            log.debug("Defeated Node id " + str(self.id) + " is forwarding! ")
             # steps: forward in two sides one time, pop messages which have been processed in 2 queues
             if message.dir == 2: # check if it is sent from right
                 m = self.messageQueue.pop(0)
@@ -203,7 +209,7 @@ class StageNode(Node):
                     else:
                         self.sendStageLeft(m)
 
-        elif self.state == StageNode.WAITING: # TODO set waiting later
+        elif self.state == StageNode.WAITING: #
             if self.processedMsg == 0: # processed right, message from left, then process
                 #remove message.dir ==3 because: elif self.processedMsg == 0 and message.dir ==2: # 2 sent to 3's right before 3 processed previous left msg
                 if self.messageQueueLeft:
@@ -221,10 +227,12 @@ class StageNode(Node):
                         message = clone(m)
                         message.dir = 3
                         self.sendStageLeft(message)
-                        print("Waiting Node id " + str(self.id) + " is processing Left Node " + str(messageLeft.id))
+                        #print("Waiting Node id " + str(self.id) + " is processing Left Node " + str(messageLeft.id))
+                        log.debug("Waiting Node id " + str(self.id) + " is processing Left Node " + str(messageLeft.id))
                     else: # Defeated, set state.
                         self.state = self.DEFEATED
-                        print("Waiting Node id " + str(self.id) + " is DEFEATED!")
+                        #print("Waiting Node id " + str(self.id) + " is DEFEATED!")
+                        log.debug("Waiting Node id " + str(self.id) + " is DEFEATED!")
                 else:
                     return
 
@@ -244,10 +252,12 @@ class StageNode(Node):
                         message = clone(m)
                         message.dir = 3
                         self.sendStageLeft(message)
-                        print("Waiting Node id " + str(self.id) + " is processing Right Node " + str(message.id))
+                        #print("Waiting Node id " + str(self.id) + " is processing Right Node " + str(message.id))
+                        log.debug("Waiting Node id " + str(self.id) + " is processing Right Node " + str(message.id))
                     else: # Defeated, set state.
                         self.state = self.DEFEATED
-                        print("Waiting Node id " + str(self.id) + " is DEFEATED!")
+                        #print("Waiting Node id " + str(self.id) + " is DEFEATED!")
+                        log.debug("Waiting Node id " + str(self.id) + " is DEFEATED!")
                 else:
                     return
 
@@ -284,7 +294,8 @@ class StageNode(Node):
         self.state = self.INITIATOR
         if self.state == StageNode.INITIATOR: # For Initiators, need process first compare here or it will miss these messages
             self.state = StageNode.CANDIDATE
-            print("Initiator Node %d has changed to Candidate." % self.id)
+            #print("Initiator Node %d has changed to Candidate." % self.id)
+            log.debug("Initiator Node %d has changed to Candidate." % self.id)
         m = StageMessage()
         m.id = self.id
         m.type = StageMessage.INFO
@@ -307,7 +318,7 @@ def test(networkSize):
     print("done")
 
 if __name__ == "__main__":
-    n = [10, 20]
-    #n = [10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000, 10000, 20000, 30000, 40000, 50000, 100000, 200000, 300000, 400000, 500000, 1000000, 2000000, 3000000, 4000000, 5000000]
+    #n = [10, 20]
+    n = [10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000, 10000, 20000, 30000, 40000, 50000, 100000, 200000, 300000, 400000, 500000, 1000000, 2000000, 3000000, 4000000, 5000000]
     for num in n:
         test(num)
