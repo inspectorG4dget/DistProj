@@ -294,16 +294,20 @@ class StageNode(Node):
         message.dir = 3
         self.sendStageLeft(message)
 
-
-if __name__ == "__main__":
+def test(networkSize):
     print("starting")
 
-    networkSize = 10
     net = StageNetwork(networkSize)
     net.setIds()
     net.showTopology()
     net.initiator.begin = StageNode.begin
     net.run()
-    print(net.getcomplexity())
+    print("Network Size = %d , message complexity = %d" %(networkSize, net.getcomplexity()))
 
     print("done")
+
+if __name__ == "__main__":
+    n = [10, 20]
+    #n = [10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000, 10000, 20000, 30000, 40000, 50000, 100000, 200000, 300000, 400000, 500000, 1000000, 2000000, 3000000, 4000000, 5000000]
+    for num in n:
+        test(num)
