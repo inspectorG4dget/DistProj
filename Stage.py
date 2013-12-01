@@ -1,7 +1,9 @@
 __author__ = 'mandy'
 
+import sys
 from Node import *
 from Network import *
+#from test import *
 from Message import *
 from random import randint
 from copy import deepcopy as clone
@@ -9,293 +11,314 @@ from copy import deepcopy as clone
 import logging
 
 log = logging.getLogger("Stages")
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.ERROR)
+#log.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+ch.setLevel(logging.ERROR)
+#ch.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(name)s | %(levelname)-8s | %(message)s')
 ch.setFormatter(formatter)
 log.addHandler(ch)
 
 
 class StageMessage(Message):
-	dir = 2 # 2 means send from Right, 3 from Left
+    def __init__(self):
+        self.id = None
+        self.type = super().INFO
+        self.dir = 2 # 2 means send from Right, 3 from Left
 
-	def __init__(self):
-		self.id = None
-		self.type = super().INFO
-
-	def log(self):
-		return "<ID%d, Type%d, Delay%d, Dir%d>" % (self.id, self.type, self.delay, self.dir)
+    def log(self):
+        return "<ID%d, Type%d, Delay%d, Dir%d>" % (self.id, self.type, self.delay, self.dir)
 
 
 class StageNetwork(Network):
-	def __init__(self, networkSize):
-		super().__init__(networkSize, StageNode)
+    def __init__(self, networkSize):
+        super().__init__(networkSize, StageNode)
 
-	def run(self):
-		curr = self.initiator.right
-		while curr != self.initiator:
-			curr.begin()
-			curr = curr.right
-		super().run()
+    def isDone(self):
+        curr = self.initiator
+        if curr.messageQueue or curr.messageQueueLeft:
+            return False
+        curr = curr.right
+        while curr != self.initiator:
+            if curr.messageQueue or curr.messageQueueLeft:# or curr.state != curr.LEADER or curr.state != curr.FOLLOWER:
+                return False
+            curr = curr.right
+
+        return True
+
+    def run(self):
+        curr = self.initiator.right
+        while curr != self.initiator:
+            curr.begin()
+            curr = curr.right
+            #super().run()
+        self.initiator.begin(self.initiator)
+        curr = self.initiator.right
+        while curr != self.initiator:
+            curr.processMessageQueue()
+            curr = curr.right
+        while not self.isDone():
+            curr = self.initiator
+            curr.processMessageQueue()
+            curr = curr.right
+            while curr != self.initiator:
+                curr.processMessageQueue()
+                curr = curr.right
 
 
 class StageNode(Node):
-	"""
-			Time Delay can be set here.
-	"""
-	minDelay = 0
-	maxDelay = 0
+    """
+            Time Delay can be set here.
+    """
+    minDelay = 0
+    maxDelay = 2
 
-	CANDIDATE = 6
-	WAITING = 7
-	DEFEATED = 8
+    CANDIDATE = 6
+    WAITING = 7
+    DEFEATED = 8
 
-	def __init__(self):
-		super().__init__()
-		self.messageQueueLeft = [] # Only for Left messages
-		""":type : list[Message]"""
-		#self.messageQueueRight= [] # Only for Right messages
-		""":type : list[Message]"""
-		self.processedMsg = 0 # 0 means processed right queue, 1 means processed left queue
-		self.stage = 0
-		self.fail = False
+    def __init__(self):
+        super().__init__()
+        self.messageQueueLeft = [] # Only for Left messages
+        """:type : list[Message]"""
+        self.processedMsg = 0 # 0 means processed right queue, 1 means processed left queue
+        self.stage = 0
+        self.fail = False
 
-	def log(self):
-		return "(%d, State%d, Queue%d, QueueLeft%d, Stage%d)" % (
-		self.id, self.state, len(self.messageQueue), len(self.messageQueueLeft), self.stage)
+    def log(self):
+        return "(%d, State%d, Queue%d, QueueLeft%d, Stage%d)" % (
+            self.id, self.state, len(self.messageQueue), len(self.messageQueueLeft), self.stage)
 
-	def _sendMessageLeft(self, message, destination):
-		destination.messageQueueLeft.append(message)
-		print(str(self.id) + " is sending to left destination Node " + str(destination.id))
-		#print("Node %d's Right is %d, left is %d" %(self.id, self.right.id, self.left.id))
-		self.sentMessages += 1
+    def _sendMessageLeft(self, message, destination):
+        destination.messageQueueLeft.append(message)
+        #print(str(self.id) + " is sending to left destination Node " + str(destination.id))
+        #print("Node %d's Right is %d, left is %d" %(self.id, self.right.id, self.left.id))
+        self.sentMessages += 1
 
-	def sendStageLeft(self, message):
-		self._sendMessageLeft(message, self.left)
+    def sendStageLeft(self, message):
+        self._sendMessageLeft(message, self.left)
 
-	#def _sendMessageRight(self, message, destination):
-	#    destination.messageQueueRight.append(message)
-	#    print(str(self.id)+" is sending to destination Node "+str(destination.id))
-	#    print("Node %d's Right is %d, left is %d" %(self.id, self.right.id, self.left.id))
-	#    self.sentMessages += 1
-	#
-	#def sendStageRight(self, message):
-	#    self._sendMessageRight(message, self.right)
+    def processMessage(self:Node, message:StageMessage): # message can be from left or right
+        #log.debug("Node %17s | PROCESS  | %-17s" %(self.log(), message.log()))  ##
 
-	#def send2Sides(self, message):
-	#        self.sendRight(message)
-	#        message = clone(message)
-	#        self.sendLeft(message)
+        #print("-" * 60)
+        #print("Message queue for node %s" % self.log())
+        #print("-" * 30 + "Right")
+        #for m in self.messageQueue:
+        #    print(m.log())
+        #print("-" * 30 + "Left")
+        #for mLeft in self.messageQueueLeft:
+        #    print(mLeft.log())
+        #print("-" * 30)
 
-	#def processMessage(self:Node, message:StageMessage, messageLeft:StageMessage):
-	def processMessage(self:Node, message:StageMessage):
-	#log.debug("Node %17s | PROCESS  | %-17s" %(self.log(), message.log()))  ##
+        if self.state != StageNode.LEADER and message.type == message.LEADER: #if Non-Leader received LEADER's msg
+            #print("Node id " + str(self.id) + " is processing Leader's notice! ")
+            log.debug("Node id " + str(self.id) + " is processing Leader's notice! ")
+            self.messageQueue = []
+            self.messageQueueLeft = []
+            self.state = self.FOLLOWER
+            #log.info("Node %17s | TRANSMIT | %-17s | to Node %03d" % (self.log(), message.log(), self.right.id))  ##
+            self.sendRight(message) # Leader notification forward
 
-		print("-" * 60)
-		print("Message queue for node %s" % self.log())
-		print("-" * 30 + "Right")
-		for m in self.messageQueue:
-			print(m.log())
-		print("-" * 30 + "Left")
-		for mLeft in self.messageQueueLeft:
-			print(mLeft.log())
-		print("-" * 30)
+        elif self.state == StageNode.CANDIDATE: # candidates processing # algorithm terminates,
+            if (message):
+                if message.id == self.id and message.stage == self.stage:
+                    if message.type != message.LEADER: #Check the termination condition
+                        self.state = self.LEADER
+                        self.messageQueue = []
+                        self.messageQueueLeft = []
 
-		#if len(self.messageQueueRight) >= 1:
-		#    message = self.messageQueueRight.pop(0)
-		#if message.id == self.id:  # algorithm terminates
-		if self.state == StageNode.CANDIDATE: # candidates processing # algorithm terminates,
-			#if self.state != self.LEADER:
-			if (message):
-				if message.type != message.LEADER:
-					if message.id == self.id:
-					#Check the termination condition
-						self.state = self.LEADER
-						self.messageQueue = []
-						self.messageQueueLeft = []
+                        m = StageMessage()
+                        m.type = m.LEADER
+                        m.id = self.id
+                        m.delay = randint(StageNode.minDelay, StageNode.maxDelay)
+                        m.stage = self.stage
+                        #log.info("Node %17s | TRANSMIT | %-17s | to Right Node %03d" % (self.log(), m.log(), self.right.id))  ##
+                        #print("Node id " + str(self.id) + " is Leader!")
+                        log.debug("Node id " + str(self.id) + " is Leader!")
+                        self.sendRight(m) # Leader notification
 
-						m = StageMessage()
-						m.type = m.LEADER
-						m.id = self.id
-						m.delay = 0 #randint(StageNode.minDelay, StageNode.maxDelay)
-						m.stage = self.stage
-						#log.info("Node %17s | TRANSMIT | %-17s | to Right Node %03d" % (self.log(), m.log(), self.right.id))  ##
-						print("Node id " + str(self.id) + " is Leader!")
-						self.sendRight(m) # Leader notification
+                    else: # clean msg queue for leader notification back to leader node
+                        self.messageQueue = []
+                        self.messageQueueLeft = []
 
+            elif (self.messageQueueLeft) and self.messageQueueLeft[0].type != message.LEADER and self.messageQueueLeft[0].id == self.id: #Check the termination condition
+                self.state = self.LEADER
+                self.messageQueue = []
+                self.messageQueueLeft = []
 
-			elif (self.messageQueueLeft) and self.messageQueueLeft[0].type != message.LEADER and self.messageQueueLeft[0].id == self.id:
-					#Check the termination condition
+                m = StageMessage()
+                m.type = m.LEADER
+                m.id = self.id
+                m.delay = randint(StageNode.minDelay, StageNode.maxDelay)
+                m.stage = self.stage
+                #log.info("Node %17s | TRANSMIT | %-17s | to Right Node %03d" % (self.log(), m.log(), self.right.id))  ##
+                #print("Node id " + str(self.id) + " is Leader from left!")
+                log.debug("Node id " + str(self.id) + " is Leader from left!")
+                self.sendRight(m) # Leader notification
 
-						self.state = self.LEADER
-						self.messageQueue = []
-						self.messageQueueLeft = []
+            if self.id != message.id and self.id < message.id: # become waiting to process another side, don't need send msg now, set processedMsg ...
+                # 3 steps: Pop msg / set node to Waiting / set processedMsg to 0 or 1
+                self.state = StageNode.WAITING
+                if message.dir == 2:
+                    m = self.messageQueue.pop(0)
+                    self.processedMsg = 0
+                    #print("Candidate Node id " + str(self.id) + " is processing Node " + str(
+                    #    message.id) + " and became Waiting! ")
+                elif message.dir == 3:
+                    m = self.messageQueueLeft.pop(0)
+                    self.processedMsg = 1
+                    #print("Candidate Node id " + str(self.id) + " is processing Left Node " + str(
+                    #    message.id) + " and became Waiting! ")
+            elif self.id != message.id: # failed, set state to WAITING for processing.
+                # 3 steps: Pop msg / set node to Waiting / set processedMsg to 0 or 1/ set self.fail
+                self.fail = True
+                self.state = StageNode.WAITING
+                if message.dir == 2:
+                    m = self.messageQueue.pop(0)
+                    self.processedMsg = 0
+                    #print("Node id " + str(self.id) + " is failed by Right Node " + str(message.id))
+                elif message.dir == 3:
+                    m = self.messageQueueLeft.pop(0)
+                    self.processedMsg = 1
+                    #print("Candidate Node id " + str(self.id) + " is processing Left Node " + str(
+                    #    message.id) + " and became Waiting! ")
 
-						m = StageMessage()
-						m.type = m.LEADER
-						m.id = self.id
-						m.delay = 0 #randint(StageNode.minDelay, StageNode.maxDelay)
-						m.stage = self.stage
-						#log.info("Node %17s | TRANSMIT | %-17s | to Right Node %03d" % (self.log(), m.log(), self.right.id))  ##
-						print("Node id " + str(self.id) + " is Leader!")
-						self.sendRight(m) # Leader notification
-						#else:
-						#   self.messageQueue = []
-						#   self.messageQueueLeft = []
-						#self.messageQueueRight = []
+        elif self.state == StageNode.DEFEATED: # DEFEATED node only forward.
+            #print("Defeated Node id " + str(self.id) + " is forwarding! ")
+            log.debug("Defeated Node id " + str(self.id) + " is forwarding! ")
+            # steps: forward in two sides one time, pop messages which have been processed in 2 queues
+            if message.dir == 2: # check if it is sent from right
+                m = self.messageQueue.pop(0)
+                self.sendRight(message) # forward to right if from my left neighbour
+                if self.messageQueueLeft: # sent right, then check left
+                    messageLeft = self.messageQueueLeft.pop(0)
+                    if messageLeft.dir == 2:
+                        self.sendRight(messageLeft)
+                    else:
+                        self.sendStageLeft(messageLeft)
+            else:
+                self.sendStageLeft(message) # forward to left if sent from left neighbour
+                messageLeft = self.messageQueueLeft.pop(0)
+                if self.messageQueue: # sent left, then check right
+                    m = self.messageQueue.pop(0)
+                    if messageLeft.dir == 2:
+                        self.sendRight(m)
+                    else:
+                        self.sendStageLeft(m)
 
-			if message and self.id < self.messageQueue[0].id: # become waiting to process another side, don't need send msg now, set processedMsg to ...
-				m = self.messageQueue.pop(0)
-				self.state = StageNode.WAITING
-				self.processedMsg = 0
-				print("Candidate Node id " + str(self.id) + " is processing Node " + str(message.id) + " and became Waiting! ")
-			elif self.id >= self.messageQueue[0].id: # failed, set state to WAITING for processing.
-				m = self.messageQueue.pop(0)
-				self.fail = True
-				self.state = StageNode.WAITING
-				self.processedMsg = 0
-				print("Node id " + str(self.id) + " is failed by Right Node " + str(message.id))
+        elif self.state == StageNode.WAITING: #
+            if self.processedMsg == 0: # processed right, message from left, then process
+                #remove message.dir ==3 because: elif self.processedMsg == 0 and message.dir ==2: # 2 sent to 3's right before 3 processed previous left msg
+                if self.messageQueueLeft:
+                    messageLeft = self.messageQueueLeft.pop(0)
+                    if (not self.fail) and self.id < messageLeft.id: # waiting processing
+                        # steps: set self.state to Candidate / stage + 1 / send msg to 2 sides
+                        self.state = StageNode.CANDIDATE
+                        self.stage += 1
+                        m = StageMessage()
+                        m.type = m.INFO #self.CANDIDATE # should set to message's type not node's state....
+                        m.id = self.id
+                        m.delay = randint(StageNode.minDelay, StageNode.maxDelay)
+                        m.stage = self.stage
+                        self.sendRight(m)
+                        message = clone(m)
+                        message.dir = 3
+                        self.sendStageLeft(message)
+                        #print("Waiting Node id " + str(self.id) + " is processing Left Node " + str(messageLeft.id))
+                        log.debug("Waiting Node id " + str(self.id) + " is processing Left Node " + str(messageLeft.id))
+                    else: # Defeated, set state.
+                        self.state = self.DEFEATED
+                        #print("Waiting Node id " + str(self.id) + " is DEFEATED!")
+                        log.debug("Waiting Node id " + str(self.id) + " is DEFEATED!")
+                else:
+                    return
 
-		elif (not message) and message.type == message.LEADER: #if received LEADER's msg
-			m = self.messageQueue.pop(0)
-			print("Node id " + str(self.id) + " is processing Leader's notice! ")
-			self.messageQueue = []
-			self.messageQueueLeft = []
-			#self.messageQueueRight = []
-			self.state = self.FOLLOWER
-			#log.info("Node %17s | TRANSMIT | %-17s | to Node %03d" % (self.log(), message.log(), self.right.id))  ##
-			self.sendRight(message) # Leader notification forward
+            elif self.processedMsg == 1: # processed Left, message from right, then process
+                if self.messageQueue:
+                    mRight = self.messageQueue.pop(0)
+                    if (not self.fail) and self.id < mRight.id: # waiting processing
+                        # steps: set self.state to Candidate / stage + 1 / send msg to 2 sides
+                        self.state = StageNode.CANDIDATE
+                        self.stage += 1
+                        m = StageMessage()
+                        m.type = m.INFO #self.CANDIDATE # should set to message's type not node's state....
+                        m.id = self.id
+                        m.delay = randint(StageNode.minDelay, StageNode.maxDelay)
+                        m.stage = self.stage
+                        self.sendRight(m)
+                        message = clone(m)
+                        message.dir = 3
+                        self.sendStageLeft(message)
+                        #print("Waiting Node id " + str(self.id) + " is processing Right Node " + str(message.id))
+                        log.debug("Waiting Node id " + str(self.id) + " is processing Right Node " + str(message.id))
+                    else: # Defeated, set state.
+                        self.state = self.DEFEATED
+                        #print("Waiting Node id " + str(self.id) + " is DEFEATED!")
+                        log.debug("Waiting Node id " + str(self.id) + " is DEFEATED!")
+                else:
+                    return
 
-		elif self.state == StageNode.DEFEATED: # DEFEATED node only forward.
-			print("Defeated Node id " + str(self.id) + " is forwarding! ")
-			m = self.messageQueue.pop(0)
-			if message.dir == 2: # check if it is sent from right
-				self.sendRight(message) # forward to right if from my left neighbour
-			else:
-				self.sendStageLeft(message) # forward to left if sent from left neighbour
-			if self.messageQueueLeft:
-				messageLeft = self.messageQueueLeft.pop(0)
-				if messageLeft.dir == 2:
-					self.sendRight(messageLeft)
-				else:
-					self.sendStageLeft(messageLeft)
+        elif self.state == StageNode.LEADER:
+            self.messageQueue = []
+            self.messageQueueLeft = []
+        else:
+            #log.info("Node %17s | TRANSMIT | %-17s | to Node %03d" % (self.log(), message.log(), self.right.id))  ##
+            #print("last else, there is error if this line is printed!!!!")
+            sys.stderr.write("last else, there is error if this line is printed!!!!")
 
-		elif self.state == StageNode.WAITING: # TODO set waiting later
-			if self.processedMsg == 0: # processed right
-				if self.messageQueueLeft:
-					messageLeft = self.messageQueueLeft.pop(0)
-					if (not self.fail) and self.id < messageLeft.id: # waiting processing
-						self.stage += 1
-						m = StageMessage()
-						m.type = self.CANDIDATE
-						m.id = self.id
-						m.delay = 0 #randint(StageNode.minDelay, StageNode.maxDelay)
-						m.stage = self.stage
-						self.sendRight(m)
-						message = clone(m)
-						message.dir = 3
-						self.sendStageLeft(message)
-						print("Waiting Node id " + str(self.id) + " is processing Left Node " + str(messageLeft.id))
-					else: # Defeated, set state.
-						self.state = self.DEFEATED
-						print("Waiting Node id " + str(self.id) + " is DEFEATED!")
-				else:
-					return
-			elif self.processedMsg == 1: # processed Left TODO set this later
-				if (not self.fail) and self.id < message.id: # waiting processing
-					self.stage += 1
-					m = StageMessage()
-					m.type = self.CANDIDATE
-					m.id = self.id
-					m.delay = 0 #randint(StageNode.minDelay, StageNode.maxDelay)
-					m.stage = self.stage
-					self.sendRight(m)
-					message = clone(m)
-					message.dir = 3
-					self.sendStageLeft(message)
-					print("Waiting Node id " + str(self.id) + " is processing Right Node " + str(message.id))
-				else: # Defeated, set state.
-					self.state = self.DEFEATED
-					print("Waiting Node id " + str(self.id) + " is DEFEATED!")
+    def processMessageQueue(self:Node):
+        #m = self.messageQueue[0]
+        #self.processMessage(m)
+        if not self.messageQueue:
+            if not self.messageQueueLeft:
+                #print("if not self.messageQueueLeft :")
+                return
+            else:
+                for mleft in self.messageQueueLeft:
+                    mleft.delay -= 1
+                mleft = self.messageQueueLeft[0]
+                if mleft.delay <=0 :
+                    self.processMessage(mleft)
+        else:
+            for m in self.messageQueue:
+                m.delay -= 1
+                #log.debug("Node %17s | SEE      | %-17s" %(self.log(), m.log()))  ##
+            m = self.messageQueue[0]
+            if m.delay <= 0:
+                self.processMessage(m)
 
-		else: # Initialization, processing..
-		# decide whether there are 2 messages from left and right. TODO need check later
-			message.delay = 0 #randint(StageNode.minDelay, StageNode.maxDelay)
-			#log.info("Node %17s | TRANSMIT | %-17s | to Node %03d" % (self.log(), message.log(), self.right.id))  ##
-			if self.state == StageNode.INITIATOR: # For Initiators, need process first compare here or it will miss these messages
-				self.state = StageNode.CANDIDATE
-				#m = StageMessage()
-				#m.type = StageNode.CANDIDATE
-				#m.id = self.id
-				#m.delay = 0 #randint(StageNode.minDelay, StageNode.maxDelay)
-				#m.stage = self.stage
-				#self.sendRight(m)
-				#message = clone(m)
-				#message.dir = 3
-				#self.sendStageLeft(message)
-				#print("Initiator Node id " + str(self.id) + " sent left msgs! Right already sent in begin!" )
-				#self.state == StageNode.CANDIDATE # candidates processing
-				#print("message id is "+ str(message.id))
-				#if self.id < message.id: # become waiting to process another side, don't need send msg now, set processedMsg to ...
-				#    self.state = StageNode.WAITING
-				#    self.processedMsg = 0
-				#    print("Candidate Node id " + str(self.id) + " is processing Node " +str(message.id) + " and became Waiting! ")
-				#else: # failed, set state to WAITING for processing.
-				#    self.fail = True
-				#    self.state = StageNode.WAITING
-				#    self.processedMsg = 0
-				#    print("Node id " + str(self.id) + " is failed by Right Node " +str(message.id))
+    def begin(self):
+        self.state = self.INITIATOR
+        if self.state == StageNode.INITIATOR: # For Initiators, need process first compare here or it will miss these messages
+            self.state = StageNode.CANDIDATE
+            #print("Initiator Node %d has changed to Candidate." % self.id)
+            log.debug("Initiator Node %d has changed to Candidate." % self.id)
+        m = StageMessage()
+        m.id = self.id
+        m.type = StageMessage.INFO
+        m.delay = randint(StageNode.minDelay, StageNode.maxDelay)
+        self.sendRight(m)
+        message = clone(m)
+        message.dir = 3
+        self.sendStageLeft(message)
 
-	def processMessageQueue(self:Node):
-		m = self.messageQueue[0]
-		self.processMessage(m)
-		#if not self.messageQueue:
-		#	print("if not self.messageQueue :")
-		#	m = self.messageQueue[0]
-		#	self.processMessage(m)
-		#	#return
-		##elif not self.messageQueueLeft:
-		##    print("if self.messageQueueLeft :")
-		##    return
-		#else:
-		#	for m in self.messageQueue:
-		#		m.delay -= 1
-		#		#log.debug("Node %17s | SEE      | %-17s" %(self.log(), m.log()))  ##
-		#
-		#	#for mleft in self.messageQueueLeft:
-		#	#    mleft.delay -= 1
-		#
-		#	m = self.messageQueue[0]
-		#	if m.delay <= 0:
-		#		#m = self.messageQueue.pop(0)
-		#		#mleft = self.messageQueueLeft.pop(0)
-		#		self.processMessage(m)
+def test(networkSize):
+    #print("starting")
 
-	def begin(self):
-		self.state = self.INITIATOR
-		if self.state == StageNode.INITIATOR: # For Initiators, need process first compare here or it will miss these messages
-			self.state = StageNode.CANDIDATE
-			print("Node %d is changed to Candidate from initiator." % self.id)
-		m = StageMessage()
-		m.id = self.id
-		m.type = StageMessage.INFO
-		m.delay = 0 #randint(StageNode.minDelay, StageNode.maxDelay)
-		self.sendRight(m)
-		message = clone(m)
-		message.dir = 3
-		self.sendStageLeft(message)
+    net = StageNetwork(networkSize)
+    net.setIds()
+    net.showTopology()
+    net.initiator.begin = StageNode.begin
+    net.run()
+    print("Network Size = %d , message complexity = %d" %(networkSize, net.getcomplexity()))
 
+    #print("done")
 
 if __name__ == "__main__":
-	print("starting")
-
-	networkSize = 4
-	net = StageNetwork(networkSize)
-	net.setIds()
-	net.showTopology()
-	net.initiator.begin = StageNode.begin
-	net.run()
-	print(net.getcomplexity())
-
-	print("done")
+    #n = [10, 20]
+    #n = [10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000, 10000, 20000, 30000, 40000, 50000, 100000, 200000, 300000, 400000, 500000, 1000000, 2000000, 3000000, 4000000, 5000000]
+    n = [5000] #500000, 1000000, 2000000, 3000000, 4000000, 5000000]
+    for num in n:
+        test(num)
