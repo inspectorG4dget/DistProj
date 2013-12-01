@@ -14,10 +14,11 @@ ch.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(name)s | %(levelname)-8s | %(message)s')
 ch.setFormatter(formatter)
 log.addHandler(ch)
+log.disabled = True
 
 class ATWNetwork(Network):
-	def __init__(self, networkSize, nodeType):
-		super().__init__(networkSize, nodeType)
+	def __init__(self, networkSize):
+		super().__init__(networkSize, ATWNode)
 
 	def run(self):
 		curr = self.initiator.right
@@ -96,7 +97,7 @@ if __name__ == "__main__":
 	print('starting')
 
 	networkSize = 10
-	net = ATWNetwork(networkSize, ATWNode)
+	net = ATWNetwork(networkSize)
 	net.setIds()
 	net.showTopology()
 	net.initiator.begin = ATWNode.begin

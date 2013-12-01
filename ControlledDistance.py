@@ -14,6 +14,7 @@ ch.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(name)s | %(levelname)-8s | %(message)s')
 ch.setFormatter(formatter)
 log.addHandler(ch)
+log.disabled = True
 
 class CDMessage(Message):
 	FORTH = 2

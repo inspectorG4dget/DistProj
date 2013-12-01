@@ -1,0 +1,5 @@
+plot "n2.stats" using 1:2 title 'n^2' with linespoints pt 0 lt -1 lw 3, "nlogn.stats" using 1:2 title 'nlogn' with linespoints pt 1 lt -1 lw 3,\
+"ATWNetwork.stats" using 1:2 title '' with linespoints ls 2 pt 2 lc 2, "ATWNetwork.stats" using 1:3 title 'All The Way' with linespoints ls -1 pt 2 lc 2, "ATWNetwork.stats" using 1:4 title '' with linespoints ls 2 pt 2 lc 2, \
+"AsFarNetwork.stats" using 1:2 title '' with linespoints ls 2 pt 3 lc 3, "AsFarNetwork.stats" using 1:3 title 'As Far' with linespoints ls -1 pt 3 lc 3, "AsFarNetwork.stats" using 1:4 title '' with linespoints ls 2 pt 3 lc 3,\
+"CDNetwork.stats" using 1:2 title '' with linespoints ls 2 pt 4 lc 4, "CDNetwork.stats" using 1:3 title 'Controlled Distance' with linespoints ls -1 pt 4 lc 4, "CDNetwork.stats"using 1:4 title '' with linespoints ls 2 pt 4 lc 4,\
+"Stages.stats" using 1:2 title '' with linespoints ls 2 pt 5 lc 5, "Stages.stats" using 1:3 title 'Stages' with linespoints ls -1 pt 5 lc 5, "Stages.stats"using 1:4 title '' with linespoints ls 2 pt 5 lc 5
